@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catatan Keuangan Online Bersama v13</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body class="bg-gray-100 font-sans min-h-screen py-6 px-4">
+
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-blue-600 text-white p-6 rounded-t-xl shadow-md text-center">
+            <h1 class="text-2xl font-bold">Pencatatan Keuangan Digital</h1>
+            <p class="text-xs opacity-80 mt-1"> Pin Aksi : 234 </p>
+            
+            <div class="mt-3 max-w-xs mx-auto">
+                <label class="block text-xs font-semibold opacity-90 mb-1 text-center">BUKU AKTIF SAAT INI:</label>
+                <select id="pilihanBuku" class="w-full p-2 bg-white text-blue-900 font-bold rounded-md shadow-sm outline-none text-center text-sm">
+                    </select>
+            </div>
+
+            <div class="flex justify-center gap-2 mt-4 flex-wrap">
+                <button type="button" id="btnKelolaKategori" class="bg-blue-800 hover:bg-blue-900 text-white text-xs font-bold py-1.5 px-4 rounded-full transition shadow-inner">
+                    ⚙️ Kelola / Edit Nama Kategori
+                </button>
+            </div>
+        </div>
+
+        <div id="modalKategori" class="hidden bg-gray-50 p-6 border-b border-gray-200 shadow-md">
+            <h2 class="text-md font-bold text-gray-900 mb-2">⚙️ Pengaturan Kategori Buku</h2>
+            <div class="flex gap-2 mb-4">
+                <input type="hidden" id="editKategoriId" value="-1">
+                <input type="text" id="inputNamaKategori" placeholder="Ketik nama kategori baru..." class="flex-1 p-2 border border-gray-300 rounded-md bg-white text-sm outline-none">
+                <button type="button" id="btnSimpanKategori" class="bg-gray-600 hover:bg-gray-700 text-white font-bold text-xs px-4 rounded-md transition">
+                    Simpan
+                </button>
+            </div>
+            <div class="bg-white rounded-md border border-gray-200 max-h-40 overflow-y-auto text-sm">
+                <ul id="listKategori" class="divide-y divide-gray-100"></ul>
+            </div>
+            <div class="flex justify-end mt-3">
+                <button type="button" id="btnTutupKategori" class="bg-gray-600 hover:bg-gray-700 text-white text-xs font-bold py-1.5 px-4 rounded-md transition">Tutup</button>
+            </div>
+        </div>
+
+        <div class="bg-white p-6 shadow-md border-b border-gray-200">
+            <form id="financeForm" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <input type="hidden" id="editIndex" value="-1">
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Tanggal</label>
+                    <input type="date" id="tanggal" required class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Keterangan</label>
+                    <input type="text" id="keterangan" placeholder="Cth: Iuran / Makan" required class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Uang Masuk (Rp)</label>
+                    <input type="number" id="masuk" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-gray-700 mb-1">Uang Keluar (Rp)</label>
+                    <input type="number" id="keluar" placeholder="0" class="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+                </div>
+                <div class="md:col-span-4 flex flex-col sm:flex-row gap-2 justify-between mt-2">
+                    <button type="button" id="btnDownload" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md transition shadow-sm text-sm">
+                        📥 Download Excel (<span id="textTombolExcel">Buku</span>)
+                    </button>
+                    <button type="submit" id="btnSubmit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-6 rounded-md transition shadow-sm text-sm">
+                        + Tambah Transaksi
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div class="bg-white px-6 pt-4 flex justify-end">
+            <button type="button" id="toggleAksiBtn" class="bg-gray-700 hover:bg-gray-800 text-white font-semibold py-1.5 px-4 rounded-full text-xs transition flex items-center gap-1.5 shadow-sm">
+                <span id="lockIcon">🔒</span> <span id="lockText">Buka Kunci Menu Aksi</span>
+            </button>
+        </div>
+
+        <div class="bg-white rounded-b-xl shadow-md overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-200 text-gray-700 uppercase text-xs tracking-wider">
+                        <th class="p-4 border-b border-gray-300">Tanggal</th>
+                        <th class="p-4 border-b border-gray-300">Keterangan</th>
+                        <th class="p-4 border-b border-gray-300 text-green-600">Masuk (+)</th>
+                        <th class="p-4 border-b border-gray-300 text-red-600">Keluar (-)</th>
+                        <th class="p-4 border-b border-gray-300 bg-blue-50 text-blue-700 font-bold">Saldo</th>
+                        <th id="thAksi" class="p-4 border-b border-gray-300 text-center hidden">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="transactionList" class="divide-y divide-gray-100 text-sm text-gray-600"></tbody>
+            </table>
+            <div id="loadingState" class="p-8 text-center text-blue-500 font-semibold">Menghubungkan ke Cloud database...</div>
+            <div id="emptyState" class="p-8 text-center text-gray-400 hidden">Belum ada transaksi di buku ini.</div>
+        </div>
+    </div>
+
+    <script>
+        // ================================================================
+        // MASUKKAN LINK URL FIREBASE REALTIME DATABASE ANDA DI BAWAH INI:
+        // ================================================================
+        const URL_DATABASE_CLOUD = "
+https://kas-masjid-7de99-default-rtdb.firebaseio.com/:null";
+        
+        // Memastikan format URL diakhiri dengan tanda garing (/)
+        const baseCloudUrl = URL_DATABASE_CLOUD.endsWith('/') ? URL_DATABASE_CLOUD : URL_DATABASE_CLOUD + '/';
+
+        let listDaftarKategori = [];
+        let kategoriTerpilih = "";
+        let transaksiData = [];
+        let aksiTerbuka = false;
+
+        const selectorBuku = document.getElementById('pilihanBuku');
+        const modalKategori = document.getElementById('modalKategori');
+        const btnKelolaKategori = document.getElementById('btnKelolaKategori');
+        const btnTutupKategori = document.getElementById('btnTutupKategori');
+        const inputNamaKategori = document.getElementById('inputNamaKategori');
+        const btnSimpanKategori = document.getElementById('btnSimpanKategori');
+        const editKategoriId = document.getElementById('editKategoriId');
+        const listKategoriUl = document.getElementById('listKategori');
+
+        const form = document.getElementById('financeForm');
+        const transactionList = document.getElementById('transactionList');
+        const emptyState = document.getElementById('emptyState');
+        const loadingState = document.getElementById('loadingState');
+        const editIndexInput = document.getElementById('editIndex');
+        const btnSubmit = document.getElementById('btnSubmit');
+        const btnDownload = document.getElementById('btnDownload');
+        const textTombolExcel = document.getElementById('textTombolExcel');
+        const thAksi = document.getElementById('thAksi');
+        const toggleAksiBtn = document.getElementById('toggleAksiBtn');
+
+        // Fungsi sinkronisasi membaca MASTER KATEGORI dari cloud secara realtime
+        async function muatKategoriDariCloud() {
+            try {
+                const respon = await fetch(`${baseCloudUrl}master_kategori.json`);
+                const data = await respon.json();
+                
+                if (data && data.length > 0) {
+                    listDaftarKategori = data;
+                } else {
+                    // Jika database cloud masih kosong, buatkan data awal default
+                    listDaftarKategori = [
+                        { id: "kat_1", nama: "Keuangan Pribadi" },
+                        { id: "kat_2", nama: "Komunitas Gym" },
+                        { id: "kat_3", nama: "Bisnis / Toko" },
+                        { id: "kat_4", nama: "Tabungan / Investasi" },
+                        { id: "kat_5", nama: "Dana Darurat" }
+                    ];
+                    await kirimKategoriKeCloud();
+                }
+                
+                if (!kategoriTerpilih) kategoriTerpilih = listDaftarKategori[0].id;
+                renderDropdownKategori();
+                await muatTransaksiDariCloud();
+            } catch (e) {
+                console.error("Gagal terhubung ke Cloud: ", e);
+                alert("Koneksi internet bermasalah atau URL database salah.");
+            }
+        }
+
+        async function kirimKategoriKeCloud() {
+            await fetch(`${baseCloudUrl}master_kategori.json`, {
+                method: 'PUT',
+                body: JSON.stringify(listDaftarKategori)
+            });
+        }
+
+        function renderDropdownKategori() {
+            selectorBuku.innerHTML = '';
+            listDaftarKategori.forEach(kat => {
+                const opt = document.createElement('option');
+                opt.value = kat.id;
+                opt.innerText = kat.nama;
+                if(kat.id === kategoriTerpilih) opt.selected = true;
+                selectorBuku.appendChild(opt);
+            });
+            const katAktif = listDaftarKategori.find(k => k.id === kategoriTerpilih);
+            textTombolExcel.innerText = katAktif ? katAktif.nama : "Buku";
+        }
+
+        // Fungsi sinkronisasi membaca DATA TRANSAKSI dari cloud secara realtime
+        async function muatTransaksiDariCloud() {
+            loadingState.className = 'p-8 text-center text-blue-500 font-semibold';
+            emptyState.className = 'hidden';
+            transactionList.innerHTML = '';
+            
+            try {
+                const respon = await fetch(`${baseCloudUrl}data_transaksi/${kategoriTerpilih}.json`);
+                const data = await respon.json();
+                transaksiData = data || [];
+                renderTable();
+            } catch(e) {
+                loadingState.className = 'hidden';
+                alert("Gagal mengunduh data transaksi dari cloud.");
+            }
+        }
+
+        async function simpanTransaksiKeCloud() {
+            let saldoRunning = 0;
+            transaksiData.forEach(item => {
+                saldoRunning = saldoRunning + item.masuk - item.keluar;
+                item.saldo = saldoRunning;
+            });
+
+            await fetch(`${baseCloudUrl}data_transaksi/${kategoriTerpilih}.json`, {
+                method: 'PUT',
+                body: JSON.stringify(transaksiData)
+            });
+            renderTable();
+        }
+
+        function renderPanelKategori() {
+            listKategoriUl.innerHTML = '';
+            listDaftarKategori.forEach(kat => {
+                const li = document.createElement('li');
+                li.className = "p-3 flex justify-between items-center gap-2";
+                li.innerHTML = `
+                    <span class="font-medium text-gray-700">${kat.nama}</span>
+                    <div class="flex gap-1.5">
+                        <button onclick="pemicuEditKategori('${kat.id}')" class="bg-blue-500 text-white text-xs py-1 px-2.5 rounded">Edit</button>
+                        <button onclick="hapusKategori('${kat.id}')" class="bg-red-500 text-white text-xs py-1 px-2.5 rounded">Hapus</button>
+                    </div>
+                `;
+                listKategoriUl.appendChild(li);
+            });
+        }
+
+        selectorBuku.addEventListener('change', async function() {
+            kategoriTerpilih = selectorBuku.value;
+            const katAktif = listDaftarKategori.find(k => k.id === kategoriTerpilih);
+            textTombolExcel.innerText = katAktif ? katAktif.nama : "Buku";
+            editIndexInput.value = "-1";
+            btnSubmit.innerText = "+ Tambah Transaksi";
+            await muatTransaksiDariCloud();
+        });
+
+        btnKelolaKategori.addEventListener('click', () => { modalKategori.classList.toggle('hidden'); renderPanelKategori(); });
+        btnTutupKategori.addEventListener('click', () => modalKategori.classList.add('hidden'));
+
+        btnSimpanKategori.addEventListener('click', async function() {
+            const namaInput = inputNamaKategori.value.trim();
+            if(!namaInput) return;
+            const idKat = editKategoriId.value;
+            if(idKat === "-1") {
+                const idBaru = 'kat_' + Date.now();
+                listDaftarKategori.push({ id: idBaru, nama: namaInput });
+            } else {
+                const index = listDaftarKategori.findIndex(k => k.id === idKat);
+                if(index !== -1) listDaftarKategori[index].nama = namaInput;
+                editKategoriId.value = "-1";
+                btnSimpanKategori.innerText = "Simpan";
+            }
+            inputNamaKategori.value = '';
+            await kirimKategoriKeCloud();
+            renderPanelKategori();
+            renderDropdownKategori();
+        });
+
+        window.pemicuEditKategori = function(id) {
+            const kat = listDaftarKategori.find(k => k.id === id);
+            if(kat) { inputNamaKategori.value = kat.nama; editKategoriId.value = id; btnSimpanKategori.innerText = "💾 Simpan"; }
+        }
+
+        window.hapusKategori = function(id) {
+            if(listDaftarKategori.length <= 1) { alert("Harus ada minimal 1 kategori!"); return; }
+            if(confirm("Hapus kategori dari cloud?")) {
+                listDaftarKategori = listDaftarKategori.filter(k => k.id !== id);
+                fetch(`${baseCloudUrl}data_transaksi/${id}.json`, { method: 'DELETE' });
+                if(kategoriTerpilih === id) { kategoriTerpilih = listDaftarKategori[0].id; }
+                kirimKategoriKeCloud().then(() => {
+                    renderPanelKategori(); renderDropdownKategori(); muatTransaksiDariCloud();
+                });
+            }
+        }
+
+        function setTanggalHariIni() {
+            const hariIni = new Date();
+            document.getElementById('tanggal').value = `${hariIni.getFullYear()}-${String(hariIni.getMonth() + 1).padStart(2, '0')}-${String(hariIni.getDate()).padStart(2, '0')}`;
+        }
+
+        function ubahKeTeksTanggal(stringTanggal) {
+            if (!stringTanggal) return "-";
+            return new Date(stringTanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+        }
+
+        function parseTanggalLokal(stringTanggal) {
+            const [tahun, bulan, tanggal] = stringTanggal.split('-');
+            return new Date(tahun, bulan - 1, tanggal);
+        }
+
+        function formatRupiah(angka) {
+            if (angka === 0 || !angka) return "-";
+            return "Rp " + Number(angka).toLocaleString('id-ID');
+        }
+
+        toggleAksiBtn.addEventListener('click', function() {
+            if (!aksiTerbuka) {
+                if (prompt("Masukkan password:") === "234") { aksiTerbuka = true; thAksi.classList.remove('hidden'); renderTable(); }
+            } else {
+                aksiTerbuka = false; thAksi.classList.add('hidden'); renderTable();
+            }
+        });
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            loadingState.className = 'p-8 text-center text-blue-500 font-semibold';
+            const idx = parseInt(editIndexInput.value);
+            const data = { 
+                tanggal: document.getElementById('tanggal').value, 
+                keterangan: document.getElementById('keterangan').value, 
+                masuk: Number(document.getElementById('masuk').value) || 0, 
+                keluar: Number(document.getElementById('keluar').value) || 0, 
+                saldo: 0 
+            };
+
+            if (idx === -1) { transaksiData.push(data); } else { transaksiData[idx] = data; editIndexInput.value = "-1"; btnSubmit.innerText = "+ Tambah Transaksi"; }
+
+            await simpanTransaksiKeCloud();
+            document.getElementById('keterangan').value = '';
+            document.getElementById('masuk').value = '';
+            document.getElementById('keluar').value = '';
+            setTanggalHariIni();
+        });
+
+        function renderTable() {
+            loadingState.className = 'hidden';
+            if (transaksiData.length > 0) { emptyState.className = 'hidden'; } else { emptyState.className = 'p-8 text-center text-gray-400'; }
+            transactionList.innerHTML = '';
+
+            transaksiData.forEach((item, index) => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-gray-50 transition";
+                let tdAksiHtml = aksiTerbuka ? `
+                    <td class="p-4 border-b border-gray-200 text-center flex justify-center gap-2">
+                        <button onclick="editData(${index})" class="bg-amber-500 text-white text-xs py-1 px-3 rounded">Edit</button>
+                        <button onclick="hapusData(${index})" class="bg-red-500 text-white text-xs py-1 px-3 rounded">Hapus</button>
+                    </td>
+                ` : '';
+
+                row.innerHTML = `
+                    <td class="p-4 border-b border-gray-200 font-medium">${ubahKeTeksTanggal(parseTanggalLokal(item.tanggal))}</td>
+                    <td class="p-4 border-b border-gray-200">${item.keterangan}</td>
+                    <td class="p-4 border-b border-gray-200 text-green-600 font-semibold">${formatRupiah(item.masuk)}</td>
+                    <td class="p-4 border-b border-gray-200 text-red-600 font-semibold">${formatRupiah(item.keluar)}</td>
+                    <td class="p-4 border-b border-gray-200 bg-blue-50 text-blue-700 font-bold">${formatRupiah(item.saldo)}</td>
+                    ${tdAksiHtml}
+                `;
+                transactionList.appendChild(row);
+            });
+        }
+
+        window.hapusData = async function(index) { 
+            if (confirm("Hapus transaksi?")) { 
+                loadingState.className = 'p-8 text-center text-blue-500 font-semibold';
+                transaksiData.splice(index, 1); 
+                await simpanTransaksiKeCloud(); 
+            } 
+        }
+        
+        window.editData = function(index) {
+            const item = transaksiData[index];
+            document.getElementById('tanggal').value = item.tanggal;
+            document.getElementById('keterangan').value = item.keterangan;
+            document.getElementById('masuk').value = item.masuk;
+            document.getElementById('keluar').value = item.keluar;
+            editIndexInput.value = index; btnSubmit.innerText = "💾 Simpan Perubahan";
+        }
+
+        btnDownload.addEventListener('click', function() {
+            if (transaksiData.length === 0) { alert("Belum ada data."); return; }
+            const excelRows = transaksiData.map(item => {
+                return { "Tanggal": ubahKeTeksTanggal(parseTanggalLokal(item.tanggal)), "Keterangan": item.keterangan, "Uang Masuk": item.masuk, "Uang Keluar": item.keluar, "Sisa Saldo": item.saldo }
+            });
+            const worksheet = XLSX.utils.json_to_sheet(excelRows);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan Keuangan");
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'binary' });
+            function s2ab(s) { const buf = new ArrayBuffer(s.length); const view = new Uint8Array(buf); for (let i=0; i<s.length; i++) view[i] = s.charCodeAt(i) & 0xFF; return buf; }
+            const dataBlob = new Blob([s2ab(excelBuffer)], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+            const linkDownload = document.createElement("a");
+            linkDownload.href = URL.createObjectURL(dataBlob);
+            const katAktif = listDaftarKategori.find(k => k.id === kategoriTerpilih);
+            linkDownload.download = `Laporan_${katAktif ? katAktif.nama.replace(/[^a-zA-Z0-9]/g, "_") : "Laporan"}.xlsx`;
+            document.body.appendChild(linkDownload); linkDownload.click(); document.body.removeChild(linkDownload);
+        });
+
+        // MENJALANKAN APLIKASI
+        setTanggalHariIni();
+        muatKategoriDariCloud();
+    </script>
+</body>
+</html>
