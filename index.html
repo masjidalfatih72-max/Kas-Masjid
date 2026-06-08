@@ -282,9 +282,15 @@
             document.getElementById('tanggal').value = `${hariIni.getFullYear()}-${String(hariIni.getMonth() + 1).padStart(2, '0')}-${String(hariIni.getDate()).padStart(2, '0')}`;
         }
 
+        // BAGIAN YANG DIUBAH: Ditambahkan opsi 'weekday' untuk menampilkan nama Hari
         function ubahKeTeksTanggal(stringTanggal) {
             if (!stringTanggal) return "-";
-            return new Date(stringTanggal).toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+            return new Date(stringTanggal).toLocaleDateString('id-ID', { 
+                weekday: 'long', 
+                day: '2-digit', 
+                month: 'long', 
+                year: 'numeric' 
+            });
         }
 
         function parseTanggalLokal(stringTanggal) {
@@ -299,9 +305,19 @@
 
         toggleAksiBtn.addEventListener('click', function() {
             if (!aksiTerbuka) {
-                if (prompt("Masukkan password:") === "234") { aksiTerbuka = true; thAksi.classList.remove('hidden'); renderTable(); }
+                if (prompt("Masukkan password:") === "234") { 
+                    aksiTerbuka = true; 
+                    document.getElementById('lockIcon').innerText = "🔓";
+                    document.getElementById('lockText').innerText = "Kunci Menu Aksi";
+                    thAksi.classList.remove('hidden'); 
+                    renderTable(); 
+                }
             } else {
-                aksiTerbuka = false; thAksi.classList.add('hidden'); renderTable();
+                aksiTerbuka = false; 
+                document.getElementById('lockIcon').innerText = "🔒";
+                document.getElementById('lockText').innerText = "Buka Kunci Menu Aksi";
+                thAksi.classList.add('hidden'); 
+                renderTable();
             }
         });
 
